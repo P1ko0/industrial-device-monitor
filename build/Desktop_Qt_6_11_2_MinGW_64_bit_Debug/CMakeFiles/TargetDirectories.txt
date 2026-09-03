@@ -1,0 +1,9 @@
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/day15_qt_window.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/edit_cache.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/rebuild_cache.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/list_install_components.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/install.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/install/local.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/install/strip.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/day15_qt_window_autogen_timestamp_deps.dir
+D:/CODE/qt_learning/day15_qt_window/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/CMakeFiles/day15_qt_window_autogen.dir
