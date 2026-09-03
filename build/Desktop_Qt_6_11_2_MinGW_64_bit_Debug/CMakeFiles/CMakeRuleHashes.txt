@@ -1,3 +1,0 @@
-# Hashes of file build rules.
-a00ef66d8a6011a0d0d722af923374c6 CMakeFiles/day15_qt_window_autogen
-ad64c8a33215b49f3c0cdc9541f8de6e day15_qt_window_autogen/timestamp
