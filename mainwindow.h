@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
 #include "Device.h"
 
 QT_BEGIN_NAMESPACE
@@ -20,6 +21,9 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    QTimer *timer;
     Device device;
+    int temp = 25;
+    int speed = 2500;
 };
 #endif // MAINWINDOW_H

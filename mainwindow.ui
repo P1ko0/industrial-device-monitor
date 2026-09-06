@@ -32,7 +32,7 @@
      <rect>
       <x>210</x>
       <y>250</y>
-      <width>301</width>
+      <width>411</width>
       <height>192</height>
      </rect>
     </property>
@@ -44,6 +44,11 @@
     <column>
      <property name="text">
       <string>Status</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Temperature</string>
      </property>
     </column>
     <column>
