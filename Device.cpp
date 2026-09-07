@@ -18,10 +18,15 @@ void Device::stop()
 
 void Device::reset()
 {
-    if(status == "stopped")
+    if(status == "stopped"||status == "error")
     {
         status = "idle";
     }
+}
+
+void Device::fault()
+{
+    status = "error";
 }
 
 const std::string& Device::getStatus() const

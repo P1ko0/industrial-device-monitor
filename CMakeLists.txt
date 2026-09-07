@@ -19,12 +19,15 @@ set(PROJECT_SOURCES
         mainwindow.ui
         Device.h
         Device.cpp
+        Logger.h
+        Logger.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(day15_qt_window
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET day15_qt_window APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

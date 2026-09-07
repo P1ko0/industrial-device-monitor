@@ -1,5 +1,8 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "Logger.h"
+#include <QDateTime>
+#include <QTableWidgetItem>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -89,13 +92,84 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this]
         {
+            auto oldStatus = device.getStatus();
+
+
             device.reset();
 
             ui->statusLabel->setText(
                 QString::fromStdString(device.getStatus())
                 );
+
+            if ((oldStatus == "stopped" || oldStatus == "error")
+                && device.getStatus() == "idle")
+            {
+                QString time = QDateTime::currentDateTime()
+                .toString("yyyy-MM-dd hh:mm:ss");
+
+                ui->logEdit->appendPlainText(time + "  设备已复位");
+                Logger::write("设备已复位");
+            }
         }
     );
+
+    connect(
+        ui->faultButton,
+        &QPushButton::clicked,
+        this,
+        [this]
+        {
+            device.fault();
+
+            ui->statusLabel->setText(
+                QString::fromStdString(device.getStatus())
+                );
+
+            int row = ui->tableAlarm->rowCount();
+            ui->tableAlarm->insertRow(row);
+
+            QString time = QDateTime::currentDateTime()
+                               .toString("yyyy-MM-dd hh:mm:ss");
+
+            ui->logEdit->appendPlainText(time + "  设备发生故障");
+            Logger::write("设备发生故障");
+
+            ui->tableAlarm->setItem(
+                row, 0, new QTableWidgetItem(time)
+                );
+
+            ui->tableAlarm->setItem(
+                row, 1, new QTableWidgetItem("设备发生故障")
+                );
+
+            ui->tableAlarm->setItem(
+                row, 2, new QTableWidgetItem("未确认")
+                );
+        }
+    );
+
+    connect(
+        ui->ackButton,
+        &QPushButton::clicked,
+        this,
+        [this]
+        {
+            int row = ui->tableAlarm->currentRow();
+
+            if (row == -1)
+            {
+                return;
+            }
+
+            QString time = QDateTime::currentDateTime()
+                               .toString("yyyy-MM-dd hh:mm:ss");
+
+            ui->tableAlarm->item(row, 2)->setText("已确认");
+
+            ui->logEdit->appendPlainText(time + "已确认");
+            Logger::write("报警已确认");
+        }
+        );
 }
 
 MainWindow::~MainWindow()
