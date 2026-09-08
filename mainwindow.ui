@@ -14,139 +14,6 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QLabel" name="statusLabel">
-    <property name="geometry">
-     <rect>
-      <x>330</x>
-      <y>40</y>
-      <width>81</width>
-      <height>61</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Device Status</string>
-    </property>
-   </widget>
-   <widget class="QTableWidget" name="tableWidget">
-    <property name="geometry">
-     <rect>
-      <x>210</x>
-      <y>250</y>
-      <width>411</width>
-      <height>71</height>
-     </rect>
-    </property>
-    <column>
-     <property name="text">
-      <string>Device</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Status</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Temperature</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>Speed</string>
-     </property>
-    </column>
-   </widget>
-   <widget class="QWidget" name="layoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>300</x>
-      <y>170</y>
-      <width>151</width>
-      <height>71</height>
-     </rect>
-    </property>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0" colspan="2">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Speed Setpoint</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="lineEdit"/>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_3">
-       <property name="text">
-        <string>Mode</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="comboBox">
-       <item>
-        <property name="text">
-         <string>Manual</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Auto</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QTableWidget" name="tableAlarm">
-    <property name="geometry">
-     <rect>
-      <x>210</x>
-      <y>340</y>
-      <width>311</width>
-      <height>192</height>
-     </rect>
-    </property>
-    <property name="selectionMode">
-     <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
-    </property>
-    <property name="selectionBehavior">
-     <enum>QAbstractItemView::SelectionBehavior::SelectItems</enum>
-    </property>
-    <property name="columnCount">
-     <number>3</number>
-    </property>
-    <column>
-     <property name="text">
-      <string>时间</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>报警内容</string>
-     </property>
-    </column>
-    <column>
-     <property name="text">
-      <string>确认状态</string>
-     </property>
-    </column>
-   </widget>
-   <widget class="QPushButton" name="ackButton">
-    <property name="geometry">
-     <rect>
-      <x>540</x>
-      <y>340</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>确认</string>
-    </property>
-   </widget>
    <widget class="QPlainTextEdit" name="logEdit">
     <property name="geometry">
      <rect>
@@ -163,40 +30,190 @@
    <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
-      <x>252</x>
-      <y>142</y>
-      <width>320</width>
-      <height>25</height>
+      <x>20</x>
+      <y>210</y>
+      <width>111</width>
+      <height>23</height>
      </rect>
     </property>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
-      <widget class="QPushButton" name="startButton">
+      <widget class="QLabel" name="label_3">
        <property name="text">
-        <string>Start</string>
+        <string>Mode</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="stopButton">
+      <widget class="QComboBox" name="comboBox">
+       <item>
+        <property name="text">
+         <string>Manual</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Auto</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>0</y>
+      <width>381</width>
+      <height>321</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <widget class="QLabel" name="statusLabel">
        <property name="text">
-        <string>Stop</string>
+        <string>Device Status</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="resetButton">
-       <property name="text">
-        <string>Reset</string>
-       </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QPushButton" name="startButton">
+         <property name="text">
+          <string>Start</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="stopButton">
+         <property name="text">
+          <string>Stop</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="resetButton">
+         <property name="text">
+          <string>Reset</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="faultButton">
+         <property name="text">
+          <string>Fault</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Speed Setpoint</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="speedEdit"/>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>Temp Setpoint</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="tempLimitEdit"/>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="applyButton">
+         <property name="text">
+          <string>应用参数</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QTableWidget" name="tableWidget">
+       <column>
+        <property name="text">
+         <string>Device</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Status</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Temperature</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Speed</string>
+        </property>
+       </column>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="faultButton">
-       <property name="text">
-        <string>Fault</string>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="horizontalLayout_6">
+       <item>
+        <widget class="QTableWidget" name="tableAlarm">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectionBehavior::SelectItems</enum>
+         </property>
+         <property name="columnCount">
+          <number>3</number>
+         </property>
+         <column>
+          <property name="text">
+           <string>时间</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>报警内容</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>确认状态</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="ackButton">
+         <property name="text">
+          <string>确认</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </widget>

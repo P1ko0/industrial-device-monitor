@@ -25,5 +25,7 @@ private:
     Device device;
     int temp = 25;
     int speed = 2500;
+    bool saveParameters();
+    bool loadParameters();
 };
 #endif // MAINWINDOW_H
