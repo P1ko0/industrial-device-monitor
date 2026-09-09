@@ -21,6 +21,8 @@ set(PROJECT_SOURCES
         Device.cpp
         Logger.h
         Logger.cpp
+        Simulator.h
+        Simulator.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

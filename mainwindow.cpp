@@ -42,7 +42,9 @@ MainWindow::MainWindow(QWidget *parent)
         QString::number(device.getTempLimit())
         );
 
-    ui->tableWidget->setRowCount(1);
+    ui->tableDevice->setRowCount(1);
+
+    refreshDeviceDisplay();
 
     timer = new QTimer(this);
 
@@ -52,42 +54,8 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this]
         {
-            ui->statusLabel->setText(
-                QString::fromStdString(device.getStatus())
-                );
-
-            temp++;
-            speed += 100;
-
-            ui->tableWidget->setItem(
-                0,
-                0,
-                new QTableWidgetItem("Device1")
-                );
-
-            ui->tableWidget->setItem(
-                0,
-                1,
-                new QTableWidgetItem(
-                    QString::fromStdString(device.getStatus())
-                    )
-                );
-
-            ui->tableWidget->setItem(
-                0,
-                2,
-                new QTableWidgetItem(
-                    QString::number(temp)
-                    )
-                );
-
-            ui->tableWidget->setItem(
-                0,
-                3,
-                new QTableWidgetItem(
-                    QString::number(speed)
-                    )
-                );
+            simulator.update();
+            refreshDeviceDisplay();
         }
         );
 
@@ -101,9 +69,7 @@ MainWindow::MainWindow(QWidget *parent)
         {
             device.start();
 
-            ui->statusLabel->setText(
-                QString::fromStdString(device.getStatus())
-                );
+            refreshDeviceDisplay();
         }
     );
 
@@ -115,9 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
         {
             device.stop();
 
-            ui->statusLabel->setText(
-                QString::fromStdString(device.getStatus())
-                );
+            refreshDeviceDisplay();
         }
     );
 
@@ -132,18 +96,12 @@ MainWindow::MainWindow(QWidget *parent)
 
             device.reset();
 
-            ui->statusLabel->setText(
-                QString::fromStdString(device.getStatus())
-                );
+            refreshDeviceDisplay();
 
             if ((oldStatus == "stopped" || oldStatus == "error")
                 && device.getStatus() == "idle")
             {
-                QString time = QDateTime::currentDateTime()
-                .toString("yyyy-MM-dd hh:mm:ss");
-
-                ui->logEdit->appendPlainText(time + "  设备已复位");
-                Logger::write("设备已复位");
+                appendLog("设备已复位");
             }
         }
     );
@@ -156,9 +114,7 @@ MainWindow::MainWindow(QWidget *parent)
         {
             device.fault();
 
-            ui->statusLabel->setText(
-                QString::fromStdString(device.getStatus())
-                );
+            refreshDeviceDisplay();
 
             int row = ui->tableAlarm->rowCount();
             ui->tableAlarm->insertRow(row);
@@ -166,8 +122,7 @@ MainWindow::MainWindow(QWidget *parent)
             QString time = QDateTime::currentDateTime()
                                .toString("yyyy-MM-dd hh:mm:ss");
 
-            ui->logEdit->appendPlainText(time + "  设备发生故障");
-            Logger::write("设备发生故障");
+            appendLog("设备发生故障");
 
             ui->tableAlarm->setItem(
                 row, 0, new QTableWidgetItem(time)
@@ -196,13 +151,9 @@ MainWindow::MainWindow(QWidget *parent)
                 return;
             }
 
-            QString time = QDateTime::currentDateTime()
-                               .toString("yyyy-MM-dd hh:mm:ss");
-
             ui->tableAlarm->item(row, 2)->setText("已确认");
 
-            ui->logEdit->appendPlainText(time + "已确认");
-            Logger::write("报警已确认");
+            appendLog("报警已确认");
         }
         );
 
@@ -340,6 +291,46 @@ bool MainWindow::loadParameters()
 
     // 复用设备的校验规则，统一应用参数
     return device.setParameters(speed, limit);
+}
+
+void MainWindow::appendLog(const QString& message)
+{
+    QString time = QDateTime::currentDateTime()
+    .toString("yyyy-MM-dd hh:mm:ss");
+
+    ui->logEdit->appendPlainText(time + "  " + message);
+
+    Logger::write(message.toStdString());
+}
+
+void MainWindow::refreshDeviceDisplay()
+{
+    QString statusText =
+        QString::fromStdString(device.getStatus());
+
+    ui->statusLabel->setText(statusText);
+
+    ui->tableDevice->setItem(
+        0, 0, new QTableWidgetItem("Device1")
+        );
+
+    ui->tableDevice->setItem(
+        0, 1, new QTableWidgetItem(statusText)
+        );
+
+    ui->tableDevice->setItem(
+        0, 2,
+        new QTableWidgetItem(
+            QString::number(simulator.getTemperature())
+            )
+        );
+
+    ui->tableDevice->setItem(
+        0, 3,
+        new QTableWidgetItem(
+            QString::number(simulator.getSpeed())
+            )
+        );
 }
 
 MainWindow::~MainWindow()

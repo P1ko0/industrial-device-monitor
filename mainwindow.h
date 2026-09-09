@@ -3,7 +3,9 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QString>
 #include "Device.h"
+#include "Simulator.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,9 +25,9 @@ private:
     Ui::MainWindow *ui;
     QTimer *timer;
     Device device;
-    int temp = 25;
-    int speed = 2500;
+    Simulator simulator;
     bool saveParameters();
     bool loadParameters();
+    void appendLog(const QString& message);
 };
 #endif // MAINWINDOW_H
