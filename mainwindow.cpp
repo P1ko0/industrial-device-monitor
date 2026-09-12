@@ -17,6 +17,67 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    socket = new QTcpSocket(this);
+
+    connect(
+        socket,
+        &QTcpSocket::connected,
+        this,
+        [this]
+        {
+            appendLog("服务器连接成功");
+        }
+        );
+
+    connect(
+        socket,
+        &QTcpSocket::disconnected,
+        this,
+        [this]
+        {
+            appendLog("服务器连接已断开");
+        }
+        );
+
+    connect(
+        socket,
+        &QTcpSocket::errorOccurred,
+        this,
+        [this]
+        {
+            appendLog("网络错误：" + socket->errorString());
+        }
+        );
+
+    appendLog("正在连接服务器……");
+
+    connect(
+        socket,
+        &QTcpSocket::readyRead,
+        this,
+        [this]
+        {
+            // 把本次收到的数据追加到缓冲区
+            receiveBuffer += socket->readAll();
+
+            // 有换行符，说明至少有一条完整消息
+            while (receiveBuffer.contains('\n'))
+            {
+                auto index = receiveBuffer.indexOf('\n');
+
+                // 取出换行符前面的消息内容
+                QByteArray message = receiveBuffer.left(index);
+
+                // 删除已取出的消息，包括末尾换行符
+                receiveBuffer.remove(0, index + 1);
+
+                appendLog("收到：" + QString::fromUtf8(message));
+            }
+        }
+        );
+
+    socket->connectToHost("127.0.0.1", 5000);
+
     QIntValidator* speedValidator = new QIntValidator(0, 3000, this);
     ui->speedEdit->setValidator(speedValidator);
 
@@ -67,23 +128,43 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this]
         {
-            device.start();
+            if (socket->state() != QAbstractSocket::ConnectedState)
+            {
+                appendLog("发送失败：尚未连接服务器");
+                return;
+            }
 
-            refreshDeviceDisplay();
+            if (socket->write("START\n") == -1)
+            {
+                appendLog("发送失败：" + socket->errorString());
+                return;
+            }
+
+            appendLog("START 命令已提交发送");
         }
-    );
+        );
 
-    connect(
-        ui->stopButton,
-        &QPushButton::clicked,
-        this,
-        [this]
-        {
-            device.stop();
+        connect(
+            ui->stopButton,
+            &QPushButton::clicked,
+            this,
+            [this]
+            {
+                if (socket->state() != QAbstractSocket::ConnectedState)
+                {
+                    appendLog("发送失败：尚未连接服务器");
+                    return;
+                }
 
-            refreshDeviceDisplay();
-        }
-    );
+                if (socket->write("STOP\n") == -1)
+                {
+                    appendLog("发送失败：" + socket->errorString());
+                    return;
+                }
+
+                appendLog("STOP 命令已提交发送");
+            }
+            );
 
     connect(
         ui->resetButton,
