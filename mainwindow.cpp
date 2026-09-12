@@ -26,6 +26,14 @@ MainWindow::MainWindow(QWidget *parent)
         [this]
         {
             appendLog("服务器连接成功");
+
+            if (socket->write("GET_STATUS\n") == -1)
+            {
+                appendLog("查询发送失败：" + socket->errorString());
+                return;
+            }
+
+            appendLog("状态查询命令已提交发送");
         }
         );
 
@@ -172,20 +180,21 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this]
         {
-            auto oldStatus = device.getStatus();
-
-
-            device.reset();
-
-            refreshDeviceDisplay();
-
-            if ((oldStatus == "stopped" || oldStatus == "error")
-                && device.getStatus() == "idle")
+            if (socket->state() != QAbstractSocket::ConnectedState)
             {
-                appendLog("设备已复位");
+                appendLog("发送失败：尚未连接服务器");
+                return;
             }
+
+            if (socket->write("RESET\n") == -1)
+            {
+                appendLog("发送失败：" + socket->errorString());
+                return;
+            }
+
+            appendLog("RESET 命令已提交发送");
         }
-    );
+        );
 
     connect(
         ui->faultButton,
