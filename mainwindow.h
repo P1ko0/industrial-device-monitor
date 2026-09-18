@@ -6,6 +6,7 @@
 #include <QString>
 #include <QTcpSocket>
 #include <QByteArray>
+#include <QModbusTcpClient>
 #include "Device.h"
 #include "Simulator.h"
 
@@ -46,5 +47,7 @@ private:
     QString remoteStatus = "unknown";
     void handleResponse(const QString& response);
     bool faultAlarmRecorded = false;
+    QModbusTcpClient *modbusClient = nullptr;
+    void readModbusData();
 };
 #endif // MAINWINDOW_H

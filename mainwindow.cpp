@@ -11,12 +11,64 @@
 #include <QSaveFile>
 #include <QFile>
 #include <QStringList>
+#include <QModbusDevice>
+#include <QVariant>
+#include <QModbusDataUnit>
+#include <QModbusReply>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    modbusClient = new QModbusTcpClient(this);
+    modbusClient->setConnectionParameter(
+        QModbusDevice::NetworkAddressParameter,
+        QStringLiteral("127.0.0.1")
+        );
+
+    modbusClient->setConnectionParameter(
+        QModbusDevice::NetworkPortParameter,
+        1502
+        );
+
+    connect(
+        modbusClient,
+        &QModbusDevice::stateChanged,
+        this,
+        [this](QModbusDevice::State state)
+        {
+            if (state == QModbusDevice::ConnectedState)
+            {
+                appendLog("Modbus：连接成功");
+                readModbusData();
+            }
+            else if (state == QModbusDevice::UnconnectedState)
+            {
+                appendLog("Modbus：未连接");
+            }
+        }
+        );
+
+    connect(
+        modbusClient,
+        &QModbusDevice::errorOccurred,
+        this,
+        [this](QModbusDevice::Error error)
+        {
+            if (error != QModbusDevice::NoError)
+            {
+                appendLog("Modbus错误：" + modbusClient->errorString());
+            }
+        }
+        );
+
+    if (!modbusClient->connectDevice())
+    {
+        appendLog("Modbus：无法发起连接，"
+                  + modbusClient->errorString());
+    }
 
     socket = new QTcpSocket(this);
     // 连接失败或断开后，等待3秒再重试
@@ -635,6 +687,84 @@ void MainWindow::handleResponse(const QString& response)
 
     remoteStatus = status;
     refreshDeviceDisplay();
+}
+
+void MainWindow::readModbusData()
+{
+    if (modbusClient->state() != QModbusDevice::ConnectedState)
+    {
+        appendLog("Modbus读取失败：尚未连接");
+        return;
+    }
+
+    // 输入寄存器，从地址0开始，读取3个
+    QModbusDataUnit request(
+        QModbusDataUnit::InputRegisters,
+        0,
+        3
+        );
+
+    // 1是服务端的设备编号
+    QModbusReply *reply = modbusClient->sendReadRequest(request, 1);
+
+    if (reply == nullptr)
+    {
+        appendLog("Modbus请求提交失败："
+                  + modbusClient->errorString());
+        return;
+    }
+
+    auto handleReply = [this, reply]
+    {
+        if (reply->error() != QModbusDevice::NoError)
+        {
+            appendLog("Modbus读取失败：" + reply->errorString());
+        }
+        else
+        {
+            QModbusDataUnit result = reply->result();
+
+            if (result.valueCount() != 3)
+            {
+                appendLog("Modbus读取失败：返回数量不符");
+            }
+            else
+            {
+                int speed = result.value(0);
+                int temperature = result.value(1);
+                int status = result.value(2);
+
+                ui->modbusDataLabel->setText("Modbus速度：" + QString::number(speed) + "rpm\n"+
+                                             "温度：" + QString::number(temperature) + "℃\n"+
+                                             "状态码：" + QString::number(status));
+
+                appendLog(
+                    "Modbus读取成功：速度="
+                    + QString::number(speed)
+                    + " rpm，温度="
+                    + QString::number(temperature)
+                    + " ℃，状态码="
+                    + QString::number(status)
+                    );
+            }
+        }
+
+        reply->deleteLater();
+    };
+
+    if (reply->isFinished())
+    {
+        handleReply();
+    }
+    else
+    {
+        connect(
+            reply,
+            &QModbusReply::finished,
+            this,
+            handleReply
+            );
+    }
 }
 
 MainWindow::~MainWindow()

@@ -14,71 +14,36 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPlainTextEdit" name="logEdit">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>241</width>
-      <height>161</height>
-     </rect>
-    </property>
-    <property name="readOnly">
-     <bool>true</bool>
-    </property>
-   </widget>
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>210</y>
-      <width>111</width>
-      <height>23</height>
+      <x>260</x>
+      <y>50</y>
+      <width>396</width>
+      <height>506</height>
      </rect>
     </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_3">
+    <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QLabel" name="label_3">
-       <property name="text">
-        <string>Mode</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBox">
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
        <item>
-        <property name="text">
-         <string>Manual</string>
-        </property>
+        <widget class="QLabel" name="connectionLabel">
+         <property name="text">
+          <string>网络:未连接</string>
+         </property>
+        </widget>
        </item>
        <item>
-        <property name="text">
-         <string>Auto</string>
-        </property>
+        <widget class="QLabel" name="statusLabel">
+         <property name="text">
+          <string>Device Status</string>
+         </property>
+        </widget>
        </item>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QWidget" name="layoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>240</x>
-      <y>0</y>
-      <width>381</width>
-      <height>321</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout_2">
-     <item>
-      <widget class="QLabel" name="statusLabel">
-       <property name="text">
-        <string>Device Status</string>
-       </property>
-      </widget>
+      </layout>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
         <widget class="QPushButton" name="startButton">
          <property name="text">
@@ -110,36 +75,28 @@
       </layout>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_5">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_4">
-           <item>
-            <widget class="QLabel" name="label_2">
-             <property name="text">
-              <string>Speed Setpoint</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="speedEdit"/>
-           </item>
-          </layout>
+        <layout class="QFormLayout" name="formLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Speed Setpoint</string>
+           </property>
+          </widget>
          </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout">
-           <item>
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>Temp Setpoint</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="tempLimitEdit"/>
-           </item>
-          </layout>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="speedEdit"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Temp Setpoint</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="tempLimitEdit"/>
          </item>
         </layout>
        </item>
@@ -147,6 +104,13 @@
         <widget class="QPushButton" name="applyButton">
          <property name="text">
           <string>应用参数</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="sendSpeedButton">
+         <property name="text">
+          <string>发送速度</string>
          </property>
         </widget>
        </item>
@@ -177,7 +141,7 @@
       </widget>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
         <widget class="QTableWidget" name="tableAlarm">
          <property name="selectionMode">
@@ -216,6 +180,32 @@
       </layout>
      </item>
     </layout>
+   </widget>
+   <widget class="QLabel" name="modbusDataLabel">
+    <property name="geometry">
+     <rect>
+      <x>2</x>
+      <y>430</y>
+      <width>231</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Modbus：尚未读取</string>
+    </property>
+   </widget>
+   <widget class="QPlainTextEdit" name="logEdit">
+    <property name="geometry">
+     <rect>
+      <x>2</x>
+      <y>232</y>
+      <width>256</width>
+      <height>192</height>
+     </rect>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
