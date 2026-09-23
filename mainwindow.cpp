@@ -227,6 +227,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     timer = new QTimer(this);
 
+    // 更新显示与模拟机数据
     connect(
         timer,
         &QTimer::timeout,
@@ -240,154 +241,299 @@ MainWindow::MainWindow(QWidget *parent)
 
         timer->start(500);
 
+    // 通信方式改变信号
+    connect(
+        ui->communicationModeComboBox,
+        &QComboBox::currentIndexChanged,
+        this,
+        [this](int index)
+        {
+            if(index == 0)
+            {
+                if(socket->state() != QAbstractSocket::ConnectedState)
+                {
+                    appendLog("状态查询失败：文本 TCP 尚未连接");
+                    return;
+                }
+
+                if(socket->write(encodeRequest("GET_STATUS", 1, "")) == -1)
+                {
+                    appendLog("查询发送失败：" + socket->errorString());
+                    return;
+                }
+
+                appendLog("状态查询命令已提交发送");
+            }
+            else if(index == 1)
+            {
+                if (modbusClient->state() != QModbusDevice::ConnectedState)
+                {
+                    appendLog("状态查询失败：Modbus 尚未连接");
+                    return;
+                }
+
+                QModbusDataUnit request(
+                    QModbusDataUnit::InputRegisters,
+                    2,
+                    1
+                    );
+
+                QModbusReply *reply = modbusClient->sendReadRequest(request, 1);
+
+                if (reply == nullptr)
+                {
+                    appendLog("Modbus请求提交失败："
+                              + modbusClient->errorString());
+                    return;
+                }
+
+                auto handleReply = [this, reply]
+                {
+                    int mode = ui->communicationModeComboBox->currentIndex();
+                    if(mode != 1)
+                    {
+                        reply->deleteLater();
+                        return;
+                    }
+                    if (reply->error() != QModbusDevice::NoError)
+                    {
+                        appendLog("Modbus读取失败：" + reply->errorString());
+                    }
+                    else
+                    {
+                        QModbusDataUnit result = reply->result();
+
+                        if (result.valueCount() != 1)
+                        {
+                            appendLog("Modbus读取失败：返回数量不符");
+                        }
+                        else
+                        {
+                            //int speed = result.value(0);
+                            //int temperature = result.value(1);
+                            int status = result.value(0);
+
+                            if(status == 0)
+                            {
+                                remoteStatus = "idle";
+                            }
+                            else if(status == 1)
+                            {
+                                remoteStatus = "running";
+                            }
+                            else if(status == 2)
+                            {
+                                remoteStatus = "stopped";
+                            }
+                            else if(status == 3)
+                            {
+                                remoteStatus = "error";
+                            }
+                            else
+                            {
+                                appendLog("未知 Modbus 状态码：" + QString::number(status));
+                            }
+
+                            if(status >= 0 && status <= 3)
+                            {
+                                refreshDeviceDisplay();
+                                appendLog(
+                                    "Modbus读取成功：状态码="
+                                    + QString::number(status)
+                                    );
+                            }
+                        }
+                    }
+
+                    reply->deleteLater();
+                };
+
+                if (reply->isFinished())
+                {
+                    handleReply();
+                }
+                else
+                {
+                    connect(
+                        reply,
+                        &QModbusReply::finished,
+                        this,
+                        handleReply
+                        );
+                }
+            }
+        }
+        );
+
+    // 启动按钮
     connect(
         ui->startButton,
         &QPushButton::clicked,
         this,
         [this]
         {
-            // if (socket->state() != QAbstractSocket::ConnectedState)
-            // {
-            //     appendLog("发送失败：尚未连接服务器");
-            //     return;
-            // }
-
-            // if (socket->write(encodeRequest("START", 1, "")) == -1)
-            // {
-            //     appendLog("发送失败：" + socket->errorString());
-            //     return;
-            // }
-
-            // appendLog("START 命令已提交发送");
-
-            if(modbusClient->state() != QModbusDevice::ConnectedState)
+            // 选择通信方式
+            int mode = ui->communicationModeComboBox->currentIndex();
+            if(mode == 0)
             {
-                appendLog("启动失败：Modbus尚未链接");
-                return;
-            }
-
-            QModbusDataUnit startCoil(QModbusDataUnit::Coils, 0, 1);
-            startCoil.setValue(0,1);
-
-            QModbusReply *writeReply = modbusClient->sendWriteRequest(startCoil, 1);
-            if(!writeReply)
-            {
-                appendLog("启动写入请求发送失败：" + modbusClient->errorString());
-                return;
-            }
-
-            auto handleWriteReply = [this, writeReply]
-            {
-                if(writeReply->error() != QModbusDevice::NoError)
+                // 文本TCP方式
+                if (socket->state() != QAbstractSocket::ConnectedState)
                 {
-                    appendLog("线圈写入失败：" + writeReply->errorString());
+                    appendLog("发送失败：尚未连接服务器");
+                    return;
                 }
-                else
+
+                if (socket->write(encodeRequest("START", 1, "")) == -1)
                 {
-                    appendLog("启动线圈写入成功，待确认设备状态");
+                    appendLog("发送失败：" + socket->errorString());
+                    return;
+                }
 
-                    QModbusDataUnit request(
-                        QModbusDataUnit::InputRegisters,
-                        2,
-                        1
-                        );
+                appendLog("START 命令已提交发送");
+            }
+            else if(mode == 1)
+            {
+                // modbusTCP方式
+                if(modbusClient->state() != QModbusDevice::ConnectedState)
+                {
+                    appendLog("启动失败：Modbus尚未连接");
+                    return;
+                }
 
-                    // 1是服务端的设备编号
-                    QModbusReply *reply = modbusClient->sendReadRequest(request, 1);
+                QModbusDataUnit startCoil(QModbusDataUnit::Coils, 0, 1);
+                startCoil.setValue(0,1);
 
-                    if (reply == nullptr)
+                QModbusReply *writeReply = modbusClient->sendWriteRequest(startCoil, 1);
+                if(!writeReply)
+                {
+                    appendLog("启动写入请求发送失败：" + modbusClient->errorString());
+                    return;
+                }
+
+                auto handleWriteReply = [this, writeReply]
+                {
+                    if(writeReply->error() != QModbusDevice::NoError)
                     {
-                        appendLog("Modbus请求提交失败："
-                                  + modbusClient->errorString());
-                        writeReply->deleteLater();
-                        return;
-                    }
-
-                    auto handleReply = [this, reply]
-                    {
-                        if (reply->error() != QModbusDevice::NoError)
-                        {
-                            appendLog("Modbus读取失败：" + reply->errorString());
-                        }
-                        else
-                        {
-                            QModbusDataUnit result = reply->result();
-
-                            if (result.valueCount() != 1)
-                            {
-                                appendLog("Modbus读取失败：返回数量不符");
-                            }
-                            else
-                            {
-                                //int speed = result.value(0);
-                                //int temperature = result.value(1);
-                                int status = result.value(0);
-
-                                if(status == 0)
-                                {
-                                    remoteStatus = "idle";
-                                }
-                                else if(status == 1)
-                                {
-                                    remoteStatus = "running";
-                                }
-                                else if(status == 2)
-                                {
-                                    remoteStatus = "stopped";
-                                }
-                                else if(status == 3)
-                                {
-                                    remoteStatus = "error";
-                                }
-                                else
-                                {
-                                    appendLog("未知 Modbus 状态码：" + QString::number(status));
-                                }
-
-                                if(status >= 0 && status <= 3)
-                                {
-                                    refreshDeviceDisplay();
-                                    appendLog(
-                                        "Modbus读取成功：状态码="
-                                        + QString::number(status)
-                                        );
-                                }
-                            }
-                        }
-
-                        reply->deleteLater();
-                    };
-
-                    if (reply->isFinished())
-                    {
-                        handleReply();
+                        appendLog("线圈写入失败：" + writeReply->errorString());
                     }
                     else
                     {
-                        connect(
-                            reply,
-                            &QModbusReply::finished,
-                            this,
-                            handleReply
+                        appendLog("启动线圈写入成功，待确认设备状态");
+
+                        QModbusDataUnit request(
+                            QModbusDataUnit::InputRegisters,
+                            2,
+                            1
                             );
+
+                        // 1是服务端的设备编号
+                        QModbusReply *reply = modbusClient->sendReadRequest(request, 1);
+
+                        if (reply == nullptr)
+                        {
+                            appendLog("Modbus请求提交失败："
+                                      + modbusClient->errorString());
+                            writeReply->deleteLater();
+                            return;
+                        }
+
+                        auto handleReply = [this, reply]
+                        {
+                            int mode = ui->communicationModeComboBox->currentIndex();
+                            if(mode == 0)
+                            {
+                                reply->deleteLater();
+                                return;
+                            }
+                            if (reply->error() != QModbusDevice::NoError)
+                            {
+                                appendLog("Modbus读取失败：" + reply->errorString());
+                            }
+                            else
+                            {
+                                QModbusDataUnit result = reply->result();
+
+                                if (result.valueCount() != 1)
+                                {
+                                    appendLog("Modbus读取失败：返回数量不符");
+                                }
+                                else
+                                {
+                                    //int speed = result.value(0);
+                                    //int temperature = result.value(1);
+                                    int status = result.value(0);
+
+                                    if(status == 0)
+                                    {
+                                        remoteStatus = "idle";
+                                    }
+                                    else if(status == 1)
+                                    {
+                                        remoteStatus = "running";
+                                    }
+                                    else if(status == 2)
+                                    {
+                                        remoteStatus = "stopped";
+                                    }
+                                    else if(status == 3)
+                                    {
+                                        remoteStatus = "error";
+                                    }
+                                    else
+                                    {
+                                        appendLog("未知 Modbus 状态码：" + QString::number(status));
+                                    }
+
+                                    if(status >= 0 && status <= 3)
+                                    {
+                                        refreshDeviceDisplay();
+                                        appendLog(
+                                            "Modbus读取成功：状态码="
+                                            + QString::number(status)
+                                            );
+                                    }
+                                }
+                            }
+
+                            reply->deleteLater();
+                        };
+
+                        if (reply->isFinished())
+                        {
+                            handleReply();
+                        }
+                        else
+                        {
+                            connect(
+                                reply,
+                                &QModbusReply::finished,
+                                this,
+                                handleReply
+                                );
+                        }
                     }
+
+                    writeReply->deleteLater();
+                };
+
+                if(writeReply->isFinished())
+                {
+                    handleWriteReply();
                 }
-
-                writeReply->deleteLater();
-            };
-
-            if(writeReply->isFinished())
-            {
-                handleWriteReply();
+                else
+                {
+                    connect(
+                        writeReply,
+                        &QModbusReply::finished,
+                        this,
+                        handleWriteReply
+                        );
+                }
             }
             else
             {
-                connect(
-                    writeReply,
-                    &QModbusReply::finished,
-                    this,
-                    handleWriteReply
-                    );
+                appendLog("请选择正确通信方式");
+                return;
             }
         }
         );
@@ -398,19 +544,28 @@ MainWindow::MainWindow(QWidget *parent)
             this,
             [this]
             {
-                if (socket->state() != QAbstractSocket::ConnectedState)
+                int mode = ui->communicationModeComboBox->currentIndex();
+                if(mode == 0)
                 {
-                    appendLog("发送失败：尚未连接服务器");
+                    if (socket->state() != QAbstractSocket::ConnectedState)
+                    {
+                        appendLog("发送失败：尚未连接服务器");
+                        return;
+                    }
+
+                    if (socket->write(encodeRequest("STOP", 1, "")) == -1)
+                    {
+                        appendLog("发送失败：" + socket->errorString());
+                        return;
+                    }
+
+                    appendLog("STOP 命令已提交发送");
+                }
+                else
+                {
+                    appendLog("当前模式暂不支持，请切换到文本 TCP");
                     return;
                 }
-
-                if (socket->write(encodeRequest("STOP", 1, "")) == -1)
-                {
-                    appendLog("发送失败：" + socket->errorString());
-                    return;
-                }
-
-                appendLog("STOP 命令已提交发送");
             }
             );
 
@@ -420,19 +575,28 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this]
         {
-            if (socket->state() != QAbstractSocket::ConnectedState)
+            int mode = ui->communicationModeComboBox->currentIndex();
+            if(!mode)
             {
-                appendLog("发送失败：尚未连接服务器");
+                if (socket->state() != QAbstractSocket::ConnectedState)
+                {
+                    appendLog("发送失败：尚未连接服务器");
+                    return;
+                }
+
+                if (socket->write(encodeRequest("RESET", 1, "")) == -1)
+                {
+                    appendLog("发送失败：" + socket->errorString());
+                    return;
+                }
+
+                appendLog("RESET 命令已提交发送");
+            }
+            else
+            {
+                appendLog("当前模式暂不支持，请切换到文本 TCP");
                 return;
             }
-
-            if (socket->write(encodeRequest("RESET", 1, "")) == -1)
-            {
-                appendLog("发送失败：" + socket->errorString());
-                return;
-            }
-
-            appendLog("RESET 命令已提交发送");
         }
         );
 
@@ -442,21 +606,30 @@ MainWindow::MainWindow(QWidget *parent)
             this,
             [this]
             {
-                if (socket->state() != QAbstractSocket::ConnectedState)
+                int mode = ui->communicationModeComboBox->currentIndex();
+                if(!mode)
                 {
-                    appendLog("发送失败：尚未连接服务器");
+                    if (socket->state() != QAbstractSocket::ConnectedState)
+                    {
+                        appendLog("发送失败：尚未连接服务器");
+                        return;
+                    }
+
+                    QByteArray data = encodeRequest("FAULT", 1, "");
+
+                    if (socket->write(data) == -1)
+                    {
+                        appendLog("发送失败：" + socket->errorString());
+                        return;
+                    }
+
+                    appendLog("故障命令已提交发送");
+                }
+                else
+                {
+                    appendLog("当前模式暂不支持，请切换到文本 TCP");
                     return;
                 }
-
-                QByteArray data = encodeRequest("FAULT", 1, "");
-
-                if (socket->write(data) == -1)
-                {
-                    appendLog("发送失败：" + socket->errorString());
-                    return;
-                }
-
-                appendLog("故障命令已提交发送");
             }
             );
 
@@ -555,39 +728,48 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this]
         {
-            if (socket->state() != QAbstractSocket::ConnectedState)
+            int mode = ui->communicationModeComboBox->currentIndex();
+            if(!mode)
             {
-                appendLog("发送失败：尚未连接服务器");
-                return;
-            }
+                if (socket->state() != QAbstractSocket::ConnectedState)
+                {
+                    appendLog("发送失败：尚未连接服务器");
+                    return;
+                }
 
-            bool speedOk = false;
-            int speed = ui->speedEdit->text().toInt(&speedOk);
+                bool speedOk = false;
+                int speed = ui->speedEdit->text().toInt(&speedOk);
 
-            if (!speedOk || !ui->speedEdit->hasAcceptableInput())
-            {
-                QMessageBox::warning(
-                    this,
-                    "参数错误",
-                    "速度请输入0～3000的整数。"
+                if (!speedOk || !ui->speedEdit->hasAcceptableInput())
+                {
+                    QMessageBox::warning(
+                        this,
+                        "参数错误",
+                        "速度请输入0～3000的整数。"
+                        );
+                    return;
+                }
+
+                QByteArray data = encodeRequest(
+                    "SET_SPEED",
+                    1,
+                    QString::number(speed)
                     );
-                return;
+
+                if (socket->write(data) == -1)
+                {
+                    appendLog("发送失败：" + socket->errorString());
+                    return;
+                }
+
+                appendLog("速度设置命令已提交发送："
+                          + QString::number(speed));
             }
-
-            QByteArray data = encodeRequest(
-                "SET_SPEED",
-                1,
-                QString::number(speed)
-                );
-
-            if (socket->write(data) == -1)
+            else
             {
-                appendLog("发送失败：" + socket->errorString());
+                appendLog("当前模式暂不支持，请切换到文本 TCP");
                 return;
             }
-
-            appendLog("速度设置命令已提交发送："
-                      + QString::number(speed));
         }
         );
 }
@@ -755,6 +937,11 @@ void MainWindow::scheduleReconnect()
 
 void MainWindow::handleResponse(const QString& response)
 {
+    int mode = ui->communicationModeComboBox->currentIndex();
+    if(mode)
+    {
+        return;
+    }
     QStringList fields = response.split('|', Qt::KeepEmptyParts);
 
     QString status;
