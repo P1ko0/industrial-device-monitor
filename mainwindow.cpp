@@ -15,12 +15,32 @@
 #include <QVariant>
 #include <QModbusDataUnit>
 #include <QModbusReply>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    if(initAlarmDatabase())
+    {
+        appendLog("报警数据库初始化成功");
+        if(loadAlarmHistory())
+        {
+            appendLog("历史报警加载成功");
+        }
+        else
+        {
+            appendLog("历史报警加载失败");
+        }
+    }
+    else
+    {
+        appendLog("报警历史保存不可用");
+    }
 
     modbusClient = new QModbusTcpClient(this);
     modbusClient->setConnectionParameter(
@@ -646,7 +666,35 @@ MainWindow::MainWindow(QWidget *parent)
                 return;
             }
 
-            ui->tableAlarm->item(row, 2)->setText("已确认");
+            QTableWidgetItem *timeItem = ui->tableAlarm->item(row, 0);
+            if(!timeItem)
+            {
+                appendLog("确认失败：报警时间单元格不存在");
+                return;
+            }
+
+            bool idOK = false;
+
+            qint64 alarmId = timeItem->data(Qt::UserRole).toLongLong(&idOK);
+            if(!idOK)
+            {
+                appendLog("确认失败：报警编号无效");
+                return;
+            }
+
+            QTableWidgetItem *ackItem = ui->tableAlarm->item(row, 2);
+            if(!ackItem)
+            {
+                appendLog("确认失败：确认单元格不存在");
+                return;
+            }
+
+            if(!acknowledgeAlarm(alarmId))
+            {
+                return;
+            }
+
+            ackItem->setText("已确认");
 
             appendLog("报警已确认");
         }
@@ -976,11 +1024,28 @@ void MainWindow::handleResponse(const QString& response)
             QString time = QDateTime::currentDateTime()
             .toString("yyyy-MM-dd hh:mm:ss");
 
+            qint64 alarmId = 0;
+
+            bool saved = saveAlarm(time,1,"DEVICE_FAULT","服务端设备发生故障",alarmId);
+            if(saved)
+            {
+                appendLog("报警已保存");
+            }
+            else
+            {
+                appendLog("本条报警未保存或者编号获取失败");
+            }
+
             int row = ui->tableAlarm->rowCount();
             ui->tableAlarm->insertRow(row);
 
+            QTableWidgetItem *timeItem = new QTableWidgetItem(time);
+            if(saved)
+            {
+                timeItem->setData(Qt::UserRole,alarmId);
+            }
             ui->tableAlarm->setItem(
-                row, 0, new QTableWidgetItem(time)
+                row, 0, timeItem
                 );
 
             ui->tableAlarm->setItem(
@@ -1145,6 +1210,142 @@ void MainWindow::readModbusData()
             handleReply
             );
     }
+}
+
+bool MainWindow::initAlarmDatabase()
+{
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName("alarm.db");
+    if(!db.open())
+    {
+        appendLog("打开数据库失败" + db.lastError().text());
+
+        return false;
+    }
+
+    QSqlQuery query(db);
+
+    QString sql = "CREATE TABLE IF NOT EXISTS alarms(id INTEGER PRIMARY KEY,time TXTE NOT NULL,device_id INTEGER NOT NULL,fault_code TEXT NOT NULL,description TEXT NOT NULL,acknowledged INTEGER NOT NULL DEFAULT 0)";
+
+    if(!query.exec(sql))
+    {
+        appendLog("创建报警表失败" + query.lastError().text());
+        return false;
+    }
+
+    return true;
+}
+
+bool MainWindow::saveAlarm(const QString &time,int device_id,const QString &fault_code,const QString &description,qint64 &alarmId)
+{
+    alarmId = 0;
+    bool idOK = 0;
+
+    QSqlQuery query;
+
+    QString sql = "INSERT INTO alarms(time,device_id,fault_code,description) VALUES(:time,:device_id,:fault_code,:description)";
+
+    if(!query.prepare(sql))
+    {
+        appendLog("准备报警写入失败" + query.lastError().text());
+        return false;
+    }
+
+    query.bindValue(":time",time);
+    query.bindValue(":device_id",device_id);
+    query.bindValue(":fault_code",fault_code);
+    query.bindValue(":description",description);
+
+    if(!query.exec())
+    {
+        appendLog("保存报警失败" + query.lastError().text());
+        return false;
+    }
+
+    alarmId = query.lastInsertId().toLongLong(&idOK);
+    if(!idOK)
+    {
+        appendLog("报警已写入，但获取编号失败");
+        return false;
+    }
+
+    return true;
+}
+
+bool MainWindow::loadAlarmHistory()
+{
+    QSqlQuery query;
+
+    QString sql = "SELECT id,time,description,acknowledged FROM alarms ORDER BY id ASC";
+
+    if(!query.exec(sql))
+    {
+        appendLog("读取历史报警失败" + query.lastError().text());
+        return false;
+    }
+
+    ui->tableAlarm->setRowCount(0);
+    while(query.next())
+    {
+        qint64 alarmId = query.value(0).toLongLong();
+        QString time = query.value(1).toString();
+        QString description = query.value(2).toString();
+        int acknowledged = query.value(3).toInt();
+
+        int row = ui->tableAlarm->rowCount();
+        ui->tableAlarm->insertRow(row);
+
+        QString ack;
+        if(acknowledged)
+        {
+            ack = "已确认";
+        }
+        else
+        {
+            ack = "未确认";
+        }
+
+        QTableWidgetItem *timeItem = new QTableWidgetItem(time);
+        timeItem->setData(Qt::UserRole,alarmId);
+        ui->tableAlarm->setItem(row,0,timeItem);
+
+        QTableWidgetItem *decriptionItem = new QTableWidgetItem(description);
+        ui->tableAlarm->setItem(row,1,decriptionItem);
+
+        QTableWidgetItem *acknowlegedItem = new QTableWidgetItem(ack);
+        ui->tableAlarm->setItem(row,2,acknowlegedItem);
+    }
+
+    return true;
+}
+
+bool MainWindow::acknowledgeAlarm(qint64 alarmId)
+{
+    QSqlQuery query;
+
+    QString sql = "UPDATE alarms SET acknowledged = 1 WHERE id = :id";
+
+    if(!query.prepare(sql))
+    {
+        appendLog("准备确认写入失败" + query.lastError().text());
+        return false;
+    }
+
+    query.bindValue(":id",alarmId);
+
+    if(!query.exec())
+    {
+        appendLog("确认报警失败" + query.lastError().text());
+        return false;
+    }
+
+    if(query.numRowsAffected() != 1)
+    {
+        appendLog("确认报警失败：受影响记录数异常");
+        return false;
+    }
+
+    return true;
 }
 
 MainWindow::~MainWindow()

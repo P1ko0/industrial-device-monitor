@@ -49,5 +49,9 @@ private:
     bool faultAlarmRecorded = false;
     QModbusTcpClient *modbusClient = nullptr;
     void readModbusData();
+    bool initAlarmDatabase();
+    bool saveAlarm(const QString &time,int device_id,const QString &fault_code,const QString &description,qint64 &alarmId);
+    bool loadAlarmHistory();
+    bool acknowledgeAlarm(qint64 alarmId);
 };
 #endif // MAINWINDOW_H
