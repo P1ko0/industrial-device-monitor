@@ -9,6 +9,7 @@
 #include <QModbusTcpClient>
 #include "Device.h"
 #include "Simulator.h"
+#include "Logger.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -33,7 +34,7 @@ private:
     Simulator simulator;
     bool saveParameters();
     bool loadParameters();
-    void appendLog(const QString& message);
+    void appendLog(const QString& message,LogLevel level = LogLevel::Info);
     void refreshDeviceDisplay();
     QByteArray encodeRequest(
         const QString& command,

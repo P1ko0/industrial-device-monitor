@@ -66,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
             }
             else if (state == QModbusDevice::UnconnectedState)
             {
-                appendLog("Modbus：未连接");
+                appendLog("Modbus：未连接",LogLevel::Warning);
             }
         }
         );
@@ -141,7 +141,7 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this]
         {
-            appendLog("网络错误：" + socket->errorString());
+            appendLog("网络错误：" + socket->errorString(),LogLevel::Warning);
 
             if (socket->state() != QAbstractSocket::ConnectedState)
             {
@@ -712,6 +712,8 @@ MainWindow::MainWindow(QWidget *parent)
 
             if (!speedOk || !ui->speedEdit->hasAcceptableInput())
             {
+                appendLog("本地参数应用被拒绝：速度必须为 0～3000 的整数",LogLevel::Warning);
+
                 QMessageBox::warning(
                     this,
                     "参数错误",
@@ -726,6 +728,8 @@ MainWindow::MainWindow(QWidget *parent)
 
             if (!tempOk || !ui->tempLimitEdit->hasAcceptableInput())
             {
+                appendLog("本地参数应用被拒绝：温度上限必须为 1～80 的整数",LogLevel::Warning);
+
                 QMessageBox::warning(
                     this,
                     "参数错误",
@@ -887,14 +891,24 @@ bool MainWindow::loadParameters()
     return device.setParameters(speed, limit);
 }
 
-void MainWindow::appendLog(const QString& message)
+void MainWindow::appendLog(const QString& message,LogLevel level)
 {
+    QString levelText = "INFO";
+    if(level == LogLevel::Error)
+    {
+        levelText = "ERROR";
+    }
+    else if(level == LogLevel::Warning)
+    {
+        levelText = "WARN";
+    }
+
     QString time = QDateTime::currentDateTime()
     .toString("yyyy-MM-dd hh:mm:ss");
 
-    ui->logEdit->appendPlainText(time + "  " + message);
+    ui->logEdit->appendPlainText(time + " [" + levelText +"] " + message);
 
-    Logger::write(message.toStdString());
+    Logger::write(message.toStdString(),level);
 }
 
 void MainWindow::refreshDeviceDisplay()
@@ -1218,18 +1232,18 @@ bool MainWindow::initAlarmDatabase()
     db.setDatabaseName("alarm.db");
     if(!db.open())
     {
-        appendLog("打开数据库失败" + db.lastError().text());
+        appendLog("打开数据库失败" + db.lastError().text(),LogLevel::Error);
 
         return false;
     }
 
     QSqlQuery query(db);
 
-    QString sql = "CREATE TABLE IF NOT EXISTS alarms(id INTEGER PRIMARY KEY,time TXTE NOT NULL,device_id INTEGER NOT NULL,fault_code TEXT NOT NULL,description TEXT NOT NULL,acknowledged INTEGER NOT NULL DEFAULT 0)";
+    QString sql = "CREATE TABLE IF NOT EXISTS alarms(id INTEGER PRIMARY KEY,time TEXT NOT NULL,device_id INTEGER NOT NULL,fault_code TEXT NOT NULL,description TEXT NOT NULL,acknowledged INTEGER NOT NULL DEFAULT 0)";
 
     if(!query.exec(sql))
     {
-        appendLog("创建报警表失败" + query.lastError().text());
+        appendLog("创建报警表失败" + query.lastError().text(),LogLevel::Error);
         return false;
     }
 
@@ -1239,7 +1253,7 @@ bool MainWindow::initAlarmDatabase()
 bool MainWindow::saveAlarm(const QString &time,int device_id,const QString &fault_code,const QString &description,qint64 &alarmId)
 {
     alarmId = 0;
-    bool idOK = 0;
+    bool idOK = false;
 
     QSqlQuery query;
 
@@ -1247,7 +1261,7 @@ bool MainWindow::saveAlarm(const QString &time,int device_id,const QString &faul
 
     if(!query.prepare(sql))
     {
-        appendLog("准备报警写入失败" + query.lastError().text());
+        appendLog("准备报警写入失败" + query.lastError().text(),LogLevel::Error);
         return false;
     }
 
@@ -1258,14 +1272,14 @@ bool MainWindow::saveAlarm(const QString &time,int device_id,const QString &faul
 
     if(!query.exec())
     {
-        appendLog("保存报警失败" + query.lastError().text());
+        appendLog("保存报警失败" + query.lastError().text(),LogLevel::Error);
         return false;
     }
 
     alarmId = query.lastInsertId().toLongLong(&idOK);
     if(!idOK)
     {
-        appendLog("报警已写入，但获取编号失败");
+        appendLog("报警已写入，但获取编号失败",LogLevel::Error);
         return false;
     }
 
@@ -1280,7 +1294,7 @@ bool MainWindow::loadAlarmHistory()
 
     if(!query.exec(sql))
     {
-        appendLog("读取历史报警失败" + query.lastError().text());
+        appendLog("读取历史报警失败" + query.lastError().text(),LogLevel::Error);
         return false;
     }
 
@@ -1327,7 +1341,7 @@ bool MainWindow::acknowledgeAlarm(qint64 alarmId)
 
     if(!query.prepare(sql))
     {
-        appendLog("准备确认写入失败" + query.lastError().text());
+        appendLog("准备确认写入失败" + query.lastError().text(),LogLevel::Error);
         return false;
     }
 
@@ -1335,13 +1349,13 @@ bool MainWindow::acknowledgeAlarm(qint64 alarmId)
 
     if(!query.exec())
     {
-        appendLog("确认报警失败" + query.lastError().text());
+        appendLog("确认报警失败" + query.lastError().text(),LogLevel::Error);
         return false;
     }
 
     if(query.numRowsAffected() != 1)
     {
-        appendLog("确认报警失败：受影响记录数异常");
+        appendLog("确认报警失败：受影响记录数异常",LogLevel::Error);
         return false;
     }
 

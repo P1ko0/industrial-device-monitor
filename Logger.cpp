@@ -25,8 +25,18 @@ string getTime()
     return ss.str();
 }
 
-void Logger::write(string message)
+void Logger::write(string message,LogLevel level)
 {
+    string levelText = "INFO";
+    if(level == LogLevel::Error)
+    {
+        levelText = "ERROR";
+    }
+    else if(level == LogLevel::Warning)
+    {
+        levelText = "WARN";
+    }
+
     ofstream file("log.txt",ios::app);
     if(!file.is_open())
     {
@@ -38,6 +48,9 @@ void Logger::write(string message)
     << "["
     << getTime()
     << "] "
+    <<"["
+    <<levelText
+    <<"] "
     << message
     << endl;
 
