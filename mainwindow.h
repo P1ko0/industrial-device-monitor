@@ -45,6 +45,8 @@ private:
     QTimer *connectTimeoutTimer = nullptr;
     void connectToServer();
     void scheduleReconnect();
+    int remoteSpeed = 0;
+    int remoteTemperature = 0;
     QString remoteStatus = "unknown";
     void handleResponse(const QString& response);
     bool faultAlarmRecorded = false;

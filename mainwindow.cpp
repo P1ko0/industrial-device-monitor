@@ -268,6 +268,8 @@ MainWindow::MainWindow(QWidget *parent)
         this,
         [this](int index)
         {
+            refreshDeviceDisplay();
+
             if(index == 0)
             {
                 if(socket->state() != QAbstractSocket::ConnectedState)
@@ -294,8 +296,8 @@ MainWindow::MainWindow(QWidget *parent)
 
                 QModbusDataUnit request(
                     QModbusDataUnit::InputRegisters,
-                    2,
-                    1
+                    0,
+                    3
                     );
 
                 QModbusReply *reply = modbusClient->sendReadRequest(request, 1);
@@ -323,15 +325,19 @@ MainWindow::MainWindow(QWidget *parent)
                     {
                         QModbusDataUnit result = reply->result();
 
-                        if (result.valueCount() != 1)
+                        if (result.valueCount() != 3)
                         {
                             appendLog("Modbus读取失败：返回数量不符");
                         }
                         else
                         {
-                            //int speed = result.value(0);
-                            //int temperature = result.value(1);
-                            int status = result.value(0);
+                            int speed = result.value(0);
+                            remoteSpeed = speed;
+
+                            int temperature = result.value(1);
+                            remoteTemperature = temperature;
+
+                            int status = result.value(2);
 
                             if(status == 0)
                             {
@@ -908,7 +914,10 @@ void MainWindow::appendLog(const QString& message,LogLevel level)
 
     ui->logEdit->appendPlainText(time + " [" + levelText +"] " + message);
 
-    Logger::write(message.toStdString(),level);
+    if(!Logger::write(message.toStdString(),level))
+    {
+        ui->logEdit->appendPlainText("[ERROR] 日志文件写入失败，本条日志仅显示在界面");
+    }
 }
 
 void MainWindow::refreshDeviceDisplay()
@@ -925,19 +934,40 @@ void MainWindow::refreshDeviceDisplay()
         0, 1, new QTableWidgetItem(statusText)
         );
 
-    ui->tableDevice->setItem(
-        0, 2,
-        new QTableWidgetItem(
-            QString::number(simulator.getTemperature())
-            )
-        );
+    int index = ui->communicationModeComboBox->currentIndex();
 
-    ui->tableDevice->setItem(
-        0, 3,
-        new QTableWidgetItem(
-            QString::number(simulator.getSpeed())
-            )
-        );
+    if(index == 0)
+    {
+        ui->tableDevice->setItem(
+            0, 2,
+            new QTableWidgetItem(
+                "-"
+                )
+            );
+
+        ui->tableDevice->setItem(
+            0, 3,
+            new QTableWidgetItem(
+                "-"
+                )
+            );
+    }
+    else
+    {
+        ui->tableDevice->setItem(
+            0, 2,
+            new QTableWidgetItem(
+                QString::number(remoteTemperature)
+                )
+            );
+
+        ui->tableDevice->setItem(
+            0, 3,
+            new QTableWidgetItem(
+                QString::number(remoteSpeed)
+                )
+            );
+    }
 }
 
 QByteArray MainWindow::encodeRequest(
