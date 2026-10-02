@@ -25,7 +25,7 @@ string getTime()
     return ss.str();
 }
 
-void Logger::write(string message,LogLevel level)
+bool Logger::write(string message,LogLevel level)
 {
     string levelText = "INFO";
     if(level == LogLevel::Error)
@@ -41,7 +41,7 @@ void Logger::write(string message,LogLevel level)
     if(!file.is_open())
     {
         cout<<"fail to open"<<endl;
-        return;
+        return false;
     }
 
     file 
@@ -55,4 +55,13 @@ void Logger::write(string message,LogLevel level)
     << endl;
 
     file.close();
+
+    if(file.fail())
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }

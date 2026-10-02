@@ -13,7 +13,7 @@ class Logger
 {
 public:
 
-    static void write(string message,LogLevel level = LogLevel::Info);
+    static bool write(string message,LogLevel level = LogLevel::Info);
 
 };
 
